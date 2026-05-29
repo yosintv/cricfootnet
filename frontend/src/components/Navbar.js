@@ -13,7 +13,7 @@ const Navbar = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <span className="text-white text-xl font-bold">TV Guide</span>
+            <span className="text-white text-xl font-bold">CricFoot</span>
           </Link>
           
           <div className="flex items-center space-x-6">

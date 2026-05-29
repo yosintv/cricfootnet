@@ -248,6 +248,86 @@ async def get_channel_today(channel_name: str):
         logging.error(f"Error getting today's schedule for {channel_name}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.get("/match/{match_id}")
+async def get_match_detail(match_id: int):
+    """Get detailed information for a specific match"""
+    try:
+        schedule = get_7day_schedule()
+        
+        # Search for the match in all days
+        for date_str, matches in schedule.items():
+            for match in matches:
+                if match.get('match_id') == match_id:
+                    # Sort countries alphabetically
+                    if match.get('tv_channels'):
+                        sorted_channels = sorted(
+                            match['tv_channels'], 
+                            key=lambda x: x.get('country', '')
+                        )
+                        match['tv_channels'] = sorted_channels
+                    
+                    date_obj = datetime.strptime(date_str, "%Y%m%d")
+                    return {
+                        "match": match,
+                        "date": date_str,
+                        "formatted_date": date_obj.strftime("%B %d, %Y"),
+                        "day_name": date_obj.strftime("%A")
+                    }
+        
+        raise HTTPException(status_code=404, detail="Match not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error getting match detail for {match_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/sitemap")
+async def generate_sitemap():
+    """Generate sitemap data for all pages"""
+    try:
+        base_url = "https://tvguide-live-streams.preview.emergentagent.com"
+        
+        # Get all channels
+        schedule = get_7day_schedule()
+        all_matches = []
+        for matches in schedule.values():
+            all_matches.extend(matches)
+        
+        channels = extract_all_channels(all_matches)
+        
+        # Create sitemap URLs
+        urls = [
+            {"loc": base_url, "priority": "1.0", "changefreq": "daily"},
+        ]
+        
+        # Add channel pages
+        for channel in channels:
+            urls.append({
+                "loc": f"{base_url}/channel/{channel}",
+                "priority": "0.8",
+                "changefreq": "daily"
+            })
+        
+        # Add match pages
+        match_ids = set()
+        for match in all_matches:
+            match_id = match.get('match_id')
+            if match_id and match_id not in match_ids:
+                match_ids.add(match_id)
+                urls.append({
+                    "loc": f"{base_url}/match/{match_id}",
+                    "priority": "0.6",
+                    "changefreq": "daily"
+                })
+        
+        return {
+            "total_urls": len(urls),
+            "urls": urls
+        }
+    except Exception as e:
+        logging.error(f"Error generating sitemap: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.post("/status", response_model=StatusCheck)
 async def create_status_check(input: StatusCheckCreate):
     status_dict = input.model_dump()
@@ -271,6 +351,61 @@ async def get_status_checks():
 
 # Include the router in the main app
 app.include_router(api_router)
+
+# Sitemap XML endpoint (not under /api prefix)
+@app.get("/sitemap.xml")
+async def sitemap_xml():
+    """Generate sitemap.xml"""
+    from fastapi.responses import Response
+    
+    try:
+        base_url = "https://tvguide-live-streams.preview.emergentagent.com"
+        
+        # Get all channels and matches
+        schedule = get_7day_schedule()
+        all_matches = []
+        for matches in schedule.values():
+            all_matches.extend(matches)
+        
+        channels = extract_all_channels(all_matches)
+        
+        # Build XML
+        xml_content = '<?xml version="1.0" encoding="UTF-8"?>\n'
+        xml_content += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        
+        # Homepage
+        xml_content += '  <url>\n'
+        xml_content += f'    <loc>{base_url}</loc>\n'
+        xml_content += '    <priority>1.0</priority>\n'
+        xml_content += '    <changefreq>daily</changefreq>\n'
+        xml_content += '  </url>\n'
+        
+        # Channel pages
+        for channel in channels:
+            xml_content += '  <url>\n'
+            xml_content += f'    <loc>{base_url}/channel/{channel}</loc>\n'
+            xml_content += '    <priority>0.8</priority>\n'
+            xml_content += '    <changefreq>daily</changefreq>\n'
+            xml_content += '  </url>\n'
+        
+        # Match pages
+        match_ids = set()
+        for match in all_matches:
+            match_id = match.get('match_id')
+            if match_id and match_id not in match_ids:
+                match_ids.add(match_id)
+                xml_content += '  <url>\n'
+                xml_content += f'    <loc>{base_url}/match/{match_id}</loc>\n'
+                xml_content += '    <priority>0.6</priority>\n'
+                xml_content += '    <changefreq>daily</changefreq>\n'
+                xml_content += '  </url>\n'
+        
+        xml_content += '</urlset>'
+        
+        return Response(content=xml_content, media_type="application/xml")
+    except Exception as e:
+        logging.error(f"Error generating sitemap.xml: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 app.add_middleware(
     CORSMiddleware,

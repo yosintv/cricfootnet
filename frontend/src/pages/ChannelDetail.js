@@ -15,7 +15,7 @@ const ChannelDetail = () => {
 
   useEffect(() => {
     // Update page title for SEO
-    document.title = `${channelName} - Live Stream Free | TV Guide`;
+    document.title = `${channelName} - Live Stream Free | CricFoot`;
     
     fetchChannelData();
   }, [channelName]);
@@ -123,7 +123,7 @@ const ChannelDetail = () => {
 
       <footer className="bg-slate-900/50 backdrop-blur-sm mt-16 py-8 border-t border-white/10">
         <div className="container mx-auto px-4 text-center text-blue-200">
-          <p>© 2026 TV Guide Live Streams. All rights reserved.</p>
+          <p>© 2026 CricFoot. All rights reserved.</p>
         </div>
       </footer>
     </div>

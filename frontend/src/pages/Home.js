@@ -15,6 +15,7 @@ const Home = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
+    document.title = "CricFoot - Live Sports Streaming Guide";
     fetchData();
   }, []);
 
@@ -47,10 +48,10 @@ const Home = () => {
         {/* Hero Section */}
         <div className="text-center mb-12" data-testid="hero-section">
           <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">
-            TV Guide - Live Streams
+            CricFoot - Live Sports Streaming
           </h1>
           <p className="text-xl text-blue-200 mb-6">
-            Watch live sports from around the world
+            Watch live cricket and football from around the world
           </p>
           <div className="max-w-md mx-auto">
             <input
@@ -94,7 +95,7 @@ const Home = () => {
       {/* Footer */}
       <footer className="bg-slate-900/50 backdrop-blur-sm mt-16 py-8 border-t border-white/10">
         <div className="container mx-auto px-4 text-center text-blue-200">
-          <p>© 2026 TV Guide Live Streams. All rights reserved.</p>
+          <p>© 2026 CricFoot. All rights reserved.</p>
         </div>
       </footer>
     </div>
