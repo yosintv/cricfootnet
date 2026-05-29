@@ -3,6 +3,8 @@ import { useParams, Link } from "react-router-dom";
 import axios from "axios";
 import Navbar from "../components/Navbar";
 import MatchCard from "../components/MatchCard";
+import Footer from "../components/Footer";
+import SEOKeywords from "../components/SEOKeywords";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -15,7 +17,16 @@ const ChannelDetail = () => {
 
   useEffect(() => {
     // Update page title for SEO
-    document.title = `${channelName} - Live Stream Free | CricFoot`;
+    document.title = `${channelName} Live Stream Free - Watch ${channelName} Football Today | CricFoot`;
+    
+    // Update meta description for SEO
+    let metaDesc = document.querySelector('meta[name="description"]');
+    if (!metaDesc) {
+      metaDesc = document.createElement('meta');
+      metaDesc.name = "description";
+      document.head.appendChild(metaDesc);
+    }
+    metaDesc.content = `Watch ${channelName} Live Stream Free. Find ${channelName} football schedule today, live match fixtures, Premier League, UEFA Champions League, La Liga and more on CricFoot TV guide.`;
     
     fetchChannelData();
   }, [channelName]);
@@ -62,38 +73,50 @@ const ChannelDetail = () => {
             Back to Home
           </Link>
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-2" data-testid="channel-title">
-            {channelName} - Live Stream Free
+            {channelName} Live Stream Free
           </h1>
-          <p className="text-blue-100 text-lg">
-            Watch {channelName} live matches and schedules
+          <p className="text-blue-100 text-lg mb-2">
+            Watch {channelName} Live Online - {channelName} Football Live Stream Today
+          </p>
+          <p className="text-blue-200/80 text-sm">
+            Find {channelName} TV guide, match fixtures, live football schedule & sports coverage
           </p>
         </div>
 
         {/* Today's Matches */}
         <section className="mb-12" data-testid="today-matches-section">
-          <h2 className="text-3xl font-bold text-white mb-6 flex items-center">
+          <h2 className="text-3xl font-bold text-white mb-4 flex items-center">
             <span className="bg-red-600 w-2 h-8 mr-3 rounded"></span>
-            Live Stream Today ({todayMatches.length} matches)
+            {channelName} Live Match Today ({todayMatches.length} matches)
           </h2>
+          <p className="text-blue-200 mb-6 text-sm">
+            {channelName} Football Today - {channelName} TV Guide Today - {channelName} Match Fixtures Today
+          </p>
           {todayMatches.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {todayMatches.map((match) => (
-                <MatchCard key={match.match_id} match={match} channelName={channelName} />
+                <Link key={match.match_id} to={`/match/${match.match_id}`} className="block hover:scale-105 transition-transform">
+                  <MatchCard match={match} channelName={channelName} />
+                </Link>
               ))}
             </div>
           ) : (
             <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-8 text-center border border-white/10">
               <p className="text-blue-200 text-lg">No matches scheduled for today on {channelName}</p>
+              <p className="text-blue-300/70 text-sm mt-2">Check the upcoming schedule below for {channelName} football coverage</p>
             </div>
           )}
         </section>
 
-        {/* Upcoming 7-Day Schedule */}
+        {/* Upcoming 7-Day Schedule - ALL MATCHES */}
         <section data-testid="upcoming-schedule-section">
-          <h2 className="text-3xl font-bold text-white mb-6 flex items-center">
+          <h2 className="text-3xl font-bold text-white mb-4 flex items-center">
             <span className="bg-green-600 w-2 h-8 mr-3 rounded"></span>
-            Upcoming Schedule (7 Days)
+            {channelName} Live Football Schedule (7 Days)
           </h2>
+          <p className="text-blue-200 mb-6 text-sm">
+            {channelName} Sports Schedule - {channelName} Match Broadcast - {channelName} Live Football on TV
+          </p>
           {channelData && channelData.schedule && channelData.schedule.length > 0 ? (
             <div className="space-y-8">
               {channelData.schedule.map((day) => (
@@ -107,7 +130,9 @@ const ChannelDetail = () => {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {day.matches.map((match) => (
-                      <MatchCard key={match.match_id} match={match} channelName={channelName} compact={true} />
+                      <Link key={match.match_id} to={`/match/${match.match_id}`} className="block hover:scale-105 transition-transform">
+                        <MatchCard match={match} channelName={channelName} compact={true} />
+                      </Link>
                     ))}
                   </div>
                 </div>
@@ -119,13 +144,12 @@ const ChannelDetail = () => {
             </div>
           )}
         </section>
+
+        {/* SEO Keywords Section */}
+        <SEOKeywords channelName={channelName} />
       </main>
 
-      <footer className="bg-slate-900/50 backdrop-blur-sm mt-16 py-8 border-t border-white/10">
-        <div className="container mx-auto px-4 text-center text-blue-200">
-          <p>© 2026 CricFoot. All rights reserved.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

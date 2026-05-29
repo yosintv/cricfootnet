@@ -352,11 +352,12 @@ async def get_status_checks():
 # Include the router in the main app
 app.include_router(api_router)
 
-# Sitemap XML endpoint (not under /api prefix)
-@app.get("/sitemap.xml")
+# Sitemap XML endpoint (must be under /api prefix for routing)
+@app.get("/api/sitemap.xml")
 async def sitemap_xml():
     """Generate sitemap.xml"""
     from fastapi.responses import Response
+    from urllib.parse import quote
     
     try:
         base_url = "https://tvguide-live-streams.preview.emergentagent.com"
@@ -373,17 +374,27 @@ async def sitemap_xml():
         xml_content = '<?xml version="1.0" encoding="UTF-8"?>\n'
         xml_content += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         
-        # Homepage
-        xml_content += '  <url>\n'
-        xml_content += f'    <loc>{base_url}</loc>\n'
-        xml_content += '    <priority>1.0</priority>\n'
-        xml_content += '    <changefreq>daily</changefreq>\n'
-        xml_content += '  </url>\n'
+        # Static pages
+        static_pages = [
+            ("", "1.0", "daily"),
+            ("/about", "0.7", "monthly"),
+            ("/contact", "0.7", "monthly"),
+            ("/privacy", "0.5", "yearly"),
+            ("/terms", "0.5", "yearly"),
+        ]
         
-        # Channel pages
-        for channel in channels:
+        for path, priority, changefreq in static_pages:
             xml_content += '  <url>\n'
-            xml_content += f'    <loc>{base_url}/channel/{channel}</loc>\n'
+            xml_content += f'    <loc>{base_url}{path}</loc>\n'
+            xml_content += f'    <priority>{priority}</priority>\n'
+            xml_content += f'    <changefreq>{changefreq}</changefreq>\n'
+            xml_content += '  </url>\n'
+        
+        # Channel pages (URL-encoded)
+        for channel in channels:
+            encoded_channel = quote(channel, safe='')
+            xml_content += '  <url>\n'
+            xml_content += f'    <loc>{base_url}/channel/{encoded_channel}</loc>\n'
             xml_content += '    <priority>0.8</priority>\n'
             xml_content += '    <changefreq>daily</changefreq>\n'
             xml_content += '  </url>\n'

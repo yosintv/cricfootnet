@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import axios from "axios";
 import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -183,11 +184,7 @@ const MatchDetail = () => {
         </section>
       </main>
 
-      <footer className="bg-slate-900/50 backdrop-blur-sm mt-16 py-8 border-t border-white/10">
-        <div className="container mx-auto px-4 text-center text-blue-200">
-          <p>© 2026 CricFoot. All rights reserved.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };
