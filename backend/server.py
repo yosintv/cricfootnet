@@ -93,6 +93,40 @@ def get_7day_schedule() -> Dict[str, List[Dict]]:
         schedule[date_str] = matches
     return schedule
 
+def slugify(text: str) -> str:
+    """Convert channel name to URL-friendly slug"""
+    import re
+    # Convert to lowercase, replace spaces and special chars with hyphens
+    slug = text.lower()
+    slug = re.sub(r'[^\w\s-]', '', slug)  # Remove special chars except spaces and hyphens
+    slug = re.sub(r'[\s_]+', '-', slug)   # Replace spaces/underscores with hyphens
+    slug = re.sub(r'-+', '-', slug)       # Collapse multiple hyphens
+    slug = slug.strip('-')                # Trim leading/trailing hyphens
+    return slug
+
+def find_channel_by_slug(slug: str) -> Optional[str]:
+    """Find the original channel name from a slug"""
+    schedule = get_7day_schedule()
+    all_matches = []
+    for matches in schedule.values():
+        all_matches.extend(matches)
+    
+    channels = extract_all_channels(all_matches)
+    
+    # First try exact slug match
+    for channel in channels:
+        if slugify(channel) == slug:
+            return channel
+    
+    # Fallback: try URL-decoded match (for backward compatibility)
+    from urllib.parse import unquote
+    decoded = unquote(slug)
+    for channel in channels:
+        if channel == decoded:
+            return channel
+    
+    return None
+
 def filter_matches_by_channel(matches: List[Dict], channel_name: str) -> List[Dict]:
     """Filter matches that broadcast on specific channel"""
     filtered = []
@@ -123,7 +157,7 @@ async def root():
 
 @api_router.get("/channels")
 async def get_all_channels():
-    """Get all unique channel names from 7-day schedule"""
+    """Get all unique channel names from 7-day schedule with slugs"""
     try:
         schedule = get_7day_schedule()
         all_matches = []
@@ -131,9 +165,12 @@ async def get_all_channels():
             all_matches.extend(matches)
         
         channels = extract_all_channels(all_matches)
+        channels_with_slugs = [{"name": ch, "slug": slugify(ch)} for ch in channels]
+        
         return {
             "total": len(channels),
-            "channels": channels
+            "channels": channels,
+            "channels_with_slugs": channels_with_slugs
         }
     except Exception as e:
         logging.error(f"Error getting channels: {e}")
@@ -202,13 +239,16 @@ async def get_schedule_by_date(date: str):
 
 @api_router.get("/channel/{channel_name}")
 async def get_channel_schedule(channel_name: str):
-    """Get all upcoming matches for specific channel (7 days)"""
+    """Get all upcoming matches for specific channel (7 days). Supports slug or name."""
     try:
+        # Try to resolve slug to actual channel name
+        resolved_name = find_channel_by_slug(channel_name) or channel_name
+        
         schedule = get_7day_schedule()
         channel_matches = []
         
         for date_str, matches in schedule.items():
-            filtered = filter_matches_by_channel(matches, channel_name)
+            filtered = filter_matches_by_channel(matches, resolved_name)
             if filtered:
                 date_obj = datetime.strptime(date_str, "%Y%m%d")
                 channel_matches.append({
@@ -219,7 +259,8 @@ async def get_channel_schedule(channel_name: str):
                 })
         
         return {
-            "channel_name": channel_name,
+            "channel_name": resolved_name,
+            "slug": slugify(resolved_name),
             "total_days": len(channel_matches),
             "schedule": channel_matches
         }
@@ -229,15 +270,19 @@ async def get_channel_schedule(channel_name: str):
 
 @api_router.get("/channel/{channel_name}/today")
 async def get_channel_today(channel_name: str):
-    """Get today's matches for specific channel"""
+    """Get today's matches for specific channel. Supports slug or name."""
     try:
+        # Try to resolve slug to actual channel name
+        resolved_name = find_channel_by_slug(channel_name) or channel_name
+        
         today = get_date_string(0)
         matches = fetch_schedule_data(today)
-        filtered = filter_matches_by_channel(matches, channel_name)
+        filtered = filter_matches_by_channel(matches, resolved_name)
         
         date_obj = datetime.now()
         return {
-            "channel_name": channel_name,
+            "channel_name": resolved_name,
+            "slug": slugify(resolved_name),
             "date": today,
             "formatted_date": date_obj.strftime("%B %d, %Y"),
             "day_name": date_obj.strftime("%A"),
@@ -390,11 +435,11 @@ async def sitemap_xml():
             xml_content += f'    <changefreq>{changefreq}</changefreq>\n'
             xml_content += '  </url>\n'
         
-        # Channel pages (URL-encoded)
+        # Channel pages (using slugs)
         for channel in channels:
-            encoded_channel = quote(channel, safe='')
+            slug = slugify(channel)
             xml_content += '  <url>\n'
-            xml_content += f'    <loc>{base_url}/channel/{encoded_channel}</loc>\n'
+            xml_content += f'    <loc>{base_url}/channel/{slug}</loc>\n'
             xml_content += '    <priority>0.8</priority>\n'
             xml_content += '    <changefreq>daily</changefreq>\n'
             xml_content += '  </url>\n'

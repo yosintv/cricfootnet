@@ -54,12 +54,12 @@ const SEOKeywords = ({ channelName }) => {
   ];
 
   return (
-    <section className="mt-16 bg-slate-800/30 backdrop-blur-sm rounded-xl p-8 border border-white/10" data-testid="seo-keywords-section">
-      <h2 className="text-2xl font-bold text-white mb-4 flex items-center">
-        <span className="bg-yellow-600 w-2 h-8 mr-3 rounded"></span>
+    <section className="mt-8 sm:mt-16 bg-slate-800/30 backdrop-blur-sm rounded-xl p-4 sm:p-8 border border-white/10" data-testid="seo-keywords-section">
+      <h2 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4 flex items-center">
+        <span className="bg-yellow-600 w-1.5 sm:w-2 h-6 sm:h-8 mr-2 sm:mr-3 rounded"></span>
         About {channelName}
       </h2>
-      <div className="text-blue-200 text-sm leading-relaxed mb-6 space-y-2">
+      <div className="text-blue-200 text-xs sm:text-sm leading-relaxed mb-4 sm:mb-6 space-y-2">
         <p>
           <strong className="text-white">{channelName}</strong> is a popular sports channel that broadcasts live football matches, UEFA Champions League, Premier League, La Liga, Serie A, Bundesliga, and international football coverage. 
           Find the complete <strong className="text-white">{channelName} TV guide</strong>, match fixtures, and live football schedule on CricFoot.
@@ -69,13 +69,13 @@ const SEOKeywords = ({ channelName }) => {
         </p>
       </div>
       
-      <div className="border-t border-white/10 pt-6">
-        <h3 className="text-lg font-semibold text-white mb-3">Popular Searches for {channelName}:</h3>
-        <div className="flex flex-wrap gap-2" data-testid="keywords-list">
+      <div className="border-t border-white/10 pt-4 sm:pt-6">
+        <h3 className="text-base sm:text-lg font-semibold text-white mb-2 sm:mb-3">Popular Searches for {channelName}:</h3>
+        <div className="flex flex-wrap gap-1.5 sm:gap-2" data-testid="keywords-list">
           {keywords.map((keyword, idx) => (
             <span 
               key={idx} 
-              className="inline-block bg-slate-700/50 text-blue-200 text-xs px-3 py-1.5 rounded-full hover:bg-slate-600/50 transition-colors cursor-default"
+              className="inline-block bg-slate-700/50 text-blue-200 text-[10px] sm:text-xs px-2 sm:px-3 py-1 sm:py-1.5 rounded-full hover:bg-slate-600/50 transition-colors cursor-default"
               data-testid={`keyword-${idx}`}
             >
               {keyword}

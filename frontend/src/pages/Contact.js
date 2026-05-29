@@ -32,20 +32,20 @@ const Contact = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-7xl">
         <div className="max-w-4xl mx-auto">
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 mb-8 shadow-2xl" data-testid="contact-hero">
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl sm:rounded-2xl p-5 sm:p-8 mb-6 sm:mb-8 shadow-2xl" data-testid="contact-hero">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-2">
               Contact Us
             </h1>
-            <p className="text-blue-100 text-lg">
+            <p className="text-blue-100 text-sm sm:text-base md:text-lg">
               Get in touch with the CricFoot team
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-8 border border-white/10" data-testid="contact-info">
-              <h2 className="text-2xl font-bold text-white mb-6">Get in Touch</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8">
+            <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 sm:p-8 border border-white/10" data-testid="contact-info">
+              <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">Get in Touch</h2>
               
               <div className="space-y-6">
                 <div className="flex items-start">
@@ -87,8 +87,8 @@ const Contact = () => {
               </div>
             </div>
 
-            <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-8 border border-white/10" data-testid="contact-form-container">
-              <h2 className="text-2xl font-bold text-white mb-6">Send a Message</h2>
+            <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl p-5 sm:p-8 border border-white/10" data-testid="contact-form-container">
+              <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">Send a Message</h2>
               
               {submitted ? (
                 <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-4 text-center" data-testid="success-message">

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import ScheduleTable from "../components/ScheduleTable";
 import ChannelGrid from "../components/ChannelGrid";
@@ -16,7 +15,7 @@ const Home = () => {
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    document.title = "CricFoot - Live Sports Streaming Guide";
+    document.title = "CricFoot - Live Sports TV Guide & Football Schedule";
     fetchData();
   }, []);
 
@@ -45,22 +44,22 @@ const Home = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
       <Navbar />
       
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-7xl">
         {/* Hero Section */}
-        <div className="text-center mb-12" data-testid="hero-section">
-          <h1 className="text-5xl md:text-6xl font-bold text-white mb-4">
+        <div className="text-center mb-8 sm:mb-12" data-testid="hero-section">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-3 sm:mb-4 leading-tight">
             CricFoot - Live Sports Streaming
           </h1>
-          <p className="text-xl text-blue-200 mb-6">
+          <p className="text-base sm:text-lg md:text-xl text-blue-200 mb-4 sm:mb-6 px-2">
             Watch live cricket and football from around the world
           </p>
-          <div className="max-w-md mx-auto">
+          <div className="max-w-md mx-auto px-2">
             <input
               type="text"
               placeholder="Search channels..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-6 py-3 rounded-full bg-white/10 backdrop-blur-sm text-white placeholder-blue-200 border border-blue-300/30 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="w-full px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base rounded-full bg-white/10 backdrop-blur-sm text-white placeholder-blue-200 border border-blue-300/30 focus:outline-none focus:ring-2 focus:ring-blue-400"
               data-testid="channel-search"
             />
           </div>
@@ -68,14 +67,14 @@ const Home = () => {
 
         {loading ? (
           <div className="flex justify-center items-center py-20">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-400"></div>
+            <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-t-4 border-b-4 border-blue-400"></div>
           </div>
         ) : (
           <>
             {/* All Channels Section */}
-            <section className="mb-16" data-testid="channels-section">
-              <h2 className="text-3xl font-bold text-white mb-6 flex items-center">
-                <span className="bg-blue-600 w-2 h-8 mr-3 rounded"></span>
+            <section className="mb-10 sm:mb-16" data-testid="channels-section">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-4 sm:mb-6 flex items-center">
+                <span className="bg-blue-600 w-1.5 sm:w-2 h-6 sm:h-8 mr-2 sm:mr-3 rounded"></span>
                 All Channels ({filteredChannels.length})
               </h2>
               <ChannelGrid channels={filteredChannels} />
@@ -83,8 +82,8 @@ const Home = () => {
 
             {/* 7-Day Schedule Section */}
             <section data-testid="schedule-section">
-              <h2 className="text-3xl font-bold text-white mb-6 flex items-center">
-                <span className="bg-green-600 w-2 h-8 mr-3 rounded"></span>
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-4 sm:mb-6 flex items-center">
+                <span className="bg-green-600 w-1.5 sm:w-2 h-6 sm:h-8 mr-2 sm:mr-3 rounded"></span>
                 7-Day TV Schedule
               </h2>
               <ScheduleTable schedule={schedule} />
@@ -93,7 +92,6 @@ const Home = () => {
         )}
       </main>
 
-      {/* Footer */}
       <Footer />
     </div>
   );
