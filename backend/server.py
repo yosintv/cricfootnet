@@ -42,7 +42,7 @@ def get_date_string(days_offset=0):
     return target_date.strftime("%Y%m%d")
 
 def fetch_schedule_data(date_str: str) -> List[Dict]:
-    """Fetch schedule data from external URL with caching"""
+    """Fetch schedule data from external URL with caching. Returns empty list if not available."""
     cache_key = f"schedule_{date_str}"
     
     # Check cache
@@ -55,6 +55,11 @@ def fetch_schedule_data(date_str: str) -> List[Dict]:
     url = f"{DATA_BASE_URL}/{date_str}.json"
     try:
         response = requests.get(url, timeout=10)
+        if response.status_code == 404:
+            # Future date data not available yet - cache empty list
+            logging.info(f"Data not available for {date_str} (404)")
+            data_cache[cache_key] = ([], datetime.now().timestamp())
+            return []
         response.raise_for_status()
         data = response.json()
         
@@ -63,6 +68,8 @@ def fetch_schedule_data(date_str: str) -> List[Dict]:
         return data
     except requests.RequestException as e:
         logging.error(f"Error fetching data for {date_str}: {e}")
+        # Cache empty list briefly to avoid repeated failed requests
+        data_cache[cache_key] = ([], datetime.now().timestamp())
         return []
 
 def extract_all_channels(matches: List[Dict]) -> List[str]:
@@ -73,6 +80,23 @@ def extract_all_channels(matches: List[Dict]) -> List[str]:
             for channel in tv_channel.get('channels', []):
                 channels.add(channel)
     return sorted(list(channels))
+
+def extract_all_leagues(matches: List[Dict]) -> List[Dict]:
+    """Extract unique leagues from matches with match count"""
+    leagues_map = {}
+    for match in matches:
+        league_name = match.get('league')
+        league_id = match.get('league_id')
+        if league_name:
+            if league_name not in leagues_map:
+                leagues_map[league_name] = {
+                    'name': league_name,
+                    'league_id': league_id,
+                    'slug': slugify(league_name),
+                    'match_count': 0
+                }
+            leagues_map[league_name]['match_count'] += 1
+    return sorted(leagues_map.values(), key=lambda x: x['name'])
 
 def extract_all_countries(matches: List[Dict]) -> List[str]:
     """Extract unique country names from matches"""
@@ -85,13 +109,45 @@ def extract_all_countries(matches: List[Dict]) -> List[str]:
     return sorted(list(countries))
 
 def get_7day_schedule() -> Dict[str, List[Dict]]:
-    """Get schedule for 7 days (today + next 6 days)"""
+    """Get schedule for 7 days (today + next 6 days). 
+    If a future date's data is not available, that day will have empty matches.
+    """
     schedule = {}
     for i in range(7):
         date_str = get_date_string(i)
         matches = fetch_schedule_data(date_str)
         schedule[date_str] = matches
     return schedule
+
+def get_available_schedule(max_days: int = 7) -> Dict[str, List[Dict]]:
+    """Get schedule with graceful fallback. 
+    If today/future data is not available, look back to find available data.
+    Returns up to max_days of available schedule data.
+    """
+    schedule = {}
+    
+    # First, try today + future days
+    for i in range(max_days):
+        date_str = get_date_string(i)
+        matches = fetch_schedule_data(date_str)
+        if matches:
+            schedule[date_str] = matches
+    
+    # If we don't have enough days, look backward (past data)
+    if len(schedule) < max_days:
+        days_needed = max_days - len(schedule)
+        for i in range(1, 30):  # Look up to 30 days back
+            date_str = get_date_string(-i)
+            if date_str not in schedule:
+                matches = fetch_schedule_data(date_str)
+                if matches:
+                    schedule[date_str] = matches
+                    days_needed -= 1
+                    if days_needed <= 0:
+                        break
+    
+    # Sort by date
+    return dict(sorted(schedule.items()))
 
 def slugify(text: str) -> str:
     """Convert channel name to URL-friendly slug"""
@@ -106,7 +162,7 @@ def slugify(text: str) -> str:
 
 def find_channel_by_slug(slug: str) -> Optional[str]:
     """Find the original channel name from a slug"""
-    schedule = get_7day_schedule()
+    schedule = get_available_schedule()
     all_matches = []
     for matches in schedule.values():
         all_matches.extend(matches)
@@ -157,9 +213,9 @@ async def root():
 
 @api_router.get("/channels")
 async def get_all_channels():
-    """Get all unique channel names from 7-day schedule with slugs"""
+    """Get all unique channel names from available 7-day schedule with slugs"""
     try:
-        schedule = get_7day_schedule()
+        schedule = get_available_schedule()
         all_matches = []
         for matches in schedule.values():
             all_matches.extend(matches)
@@ -194,11 +250,74 @@ async def get_all_countries():
         logging.error(f"Error getting countries: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@api_router.get("/leagues")
+async def get_all_leagues():
+    """Get all unique leagues from 7-day schedule (with fallback to available data)"""
+    try:
+        schedule = get_available_schedule()
+        all_matches = []
+        for matches in schedule.values():
+            all_matches.extend(matches)
+        
+        leagues = extract_all_leagues(all_matches)
+        return {
+            "total": len(leagues),
+            "leagues": leagues
+        }
+    except Exception as e:
+        logging.error(f"Error getting leagues: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/league/{league_slug}")
+async def get_league_matches(league_slug: str):
+    """Get all matches for a specific league (uses available 7-day data)"""
+    try:
+        schedule = get_available_schedule()
+        
+        # Find matches for this league across all dates
+        league_schedule = []
+        league_name = None
+        
+        for date_str, matches in schedule.items():
+            day_matches = []
+            for match in matches:
+                if slugify(match.get('league', '')) == league_slug:
+                    day_matches.append(match)
+                    if not league_name:
+                        league_name = match.get('league')
+            
+            if day_matches:
+                date_obj = datetime.strptime(date_str, "%Y%m%d")
+                league_schedule.append({
+                    "date": date_str,
+                    "formatted_date": date_obj.strftime("%B %d, %Y"),
+                    "day_name": date_obj.strftime("%A"),
+                    "matches": day_matches
+                })
+        
+        if not league_name:
+            raise HTTPException(status_code=404, detail="League not found")
+        
+        total_matches = sum(len(day['matches']) for day in league_schedule)
+        
+        return {
+            "league_name": league_name,
+            "slug": league_slug,
+            "total_days": len(league_schedule),
+            "total_matches": total_matches,
+            "schedule": league_schedule
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error getting league matches for {league_slug}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @api_router.get("/schedule/7days")
 async def get_schedule_7days():
-    """Get 7-day schedule (today + next 6 days)"""
+    """Get 7-day schedule (today + next 6 days, with fallback to available data)"""
     try:
-        schedule = get_7day_schedule()
+        schedule = get_available_schedule()
         
         # Format response with readable dates
         formatted_schedule = {}
@@ -244,7 +363,7 @@ async def get_channel_schedule(channel_name: str):
         # Try to resolve slug to actual channel name
         resolved_name = find_channel_by_slug(channel_name) or channel_name
         
-        schedule = get_7day_schedule()
+        schedule = get_available_schedule()
         channel_matches = []
         
         for date_str, matches in schedule.items():
@@ -297,7 +416,7 @@ async def get_channel_today(channel_name: str):
 async def get_match_detail(match_id: int):
     """Get detailed information for a specific match"""
     try:
-        schedule = get_7day_schedule()
+        schedule = get_available_schedule()
         
         # Search for the match in all days
         for date_str, matches in schedule.items():
@@ -408,12 +527,13 @@ async def sitemap_xml():
         base_url = "https://tvguide-live-streams.preview.emergentagent.com"
         
         # Get all channels and matches
-        schedule = get_7day_schedule()
+        schedule = get_available_schedule()
         all_matches = []
         for matches in schedule.values():
             all_matches.extend(matches)
         
         channels = extract_all_channels(all_matches)
+        leagues = extract_all_leagues(all_matches)
         
         # Build XML
         xml_content = '<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -441,6 +561,14 @@ async def sitemap_xml():
             xml_content += '  <url>\n'
             xml_content += f'    <loc>{base_url}/channel/{slug}</loc>\n'
             xml_content += '    <priority>0.8</priority>\n'
+            xml_content += '    <changefreq>daily</changefreq>\n'
+            xml_content += '  </url>\n'
+        
+        # League pages (using slugs)
+        for league in leagues:
+            xml_content += '  <url>\n'
+            xml_content += f'    <loc>{base_url}/league/{league["slug"]}</loc>\n'
+            xml_content += '    <priority>0.7</priority>\n'
             xml_content += '    <changefreq>daily</changefreq>\n'
             xml_content += '  </url>\n'
         
